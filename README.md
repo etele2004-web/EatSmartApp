@@ -1,0 +1,2 @@
+# EatSmartApp
+Kaloriaszamlalo app

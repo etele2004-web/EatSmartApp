@@ -1,4 +1,3 @@
-# kaloriaszamolo.py
 # Napi kalóriaszámítás több étkezésből
 
 from etkezes import Etkezes

@@ -1,4 +1,3 @@
-# etel.py
 # Egy egyszerű osztály ételek kezelésére
 
 class Etel:

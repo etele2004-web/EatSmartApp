@@ -1,7 +1,10 @@
 import streamlit as st
 import sqlite3
 from datetime import datetime
-import bcrypt 
+
+# --- FÜGGVÉNY: ÁLLANDÓ FELHASZNÁLÓ ---
+FIXED_USER_ID = "GUEST_ID" # Egyedi azonosító, amit nem mutatunk
+DEFAULT_DISPLAY_NAME = "Vendég"
 
 # --- 1. KONFIGURÁCIÓ ---
 st.set_page_config(page_title="EatSmart", page_icon="🍏", layout="centered")
@@ -27,10 +30,12 @@ st.markdown("""
 
 # --- 3. ADATBÁZIS KEZELÉS ---
 def init_db():
+    """Adatbázis inicializálása, felvéve a display_name oszlopot."""
     conn = sqlite3.connect('eatsmart.db')
     c = conn.cursor()
+    # JAVÍTVA: Hozzáadva a display_name oszlop
     c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (username TEXT PRIMARY KEY, password_hash TEXT,
+                 (username TEXT PRIMARY KEY, display_name TEXT, 
                   weight REAL, height REAL, age INTEGER, gender TEXT, 
                   goal TEXT, target_weight REAL, daily_target INTEGER)''')
     c.execute('''CREATE TABLE IF NOT EXISTS food_log
@@ -38,7 +43,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-def get_user_by_name(username):
+def get_user_data(username):
     conn = sqlite3.connect('eatsmart.db')
     c = conn.cursor()
     c.execute("SELECT * FROM users WHERE username=?", (username,))
@@ -46,27 +51,41 @@ def get_user_by_name(username):
     conn.close()
     return user
 
-def create_user(username, password, weight, height, age, gender, goal, target_weight, daily_target):
-    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+# JAVÍTVA: display_name hozzáadva a paraméterekhez (9 paraméter)
+def create_guest_user(username, display_name, weight, height, age, gender, goal, target_weight, daily_target):
     conn = sqlite3.connect('eatsmart.db')
     c = conn.cursor()
     c.execute("INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?)", 
-              (username, hashed_password, weight, height, age, gender, goal, target_weight, daily_target))
+              (username, display_name, weight, height, age, gender, goal, target_weight, daily_target))
     conn.commit()
     conn.close()
 
-def update_user_data(username, weight, height, age, gender, goal, target_weight, daily_target):
+# JAVÍTVA: display_name hozzáadva a frissítéshez
+def update_user_data(username, display_name, weight, height, age, gender, goal, target_weight, daily_target):
     conn = sqlite3.connect('eatsmart.db')
     c = conn.cursor()
     c.execute("""UPDATE users 
-                 SET weight=?, height=?, age=?, gender=?, goal=?, target_weight=?, daily_target=?
+                 SET display_name=?, weight=?, height=?, age=?, gender=?, goal=?, target_weight=?, daily_target=?
                  WHERE username=?""", 
-              (weight, height, age, gender, goal, target_weight, daily_target, username))
+              (display_name, weight, height, age, gender, goal, target_weight, daily_target, username))
     conn.commit()
     conn.close()
 
-def verify_password(plain_password, hashed_password):
-    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+def add_food(username, food_name, calories):
+    try:
+        conn = sqlite3.connect('eatsmart.db')
+        c = conn.cursor()
+        now_date = datetime.now().strftime("%Y-%m-%d")
+        now_time = datetime.now().strftime("%H:%M")
+        c.execute("INSERT INTO food_log (username, food_name, calories, date, time) VALUES (?,?,?,?,?)", 
+                  (username, food_name, int(calories), now_date, now_time))
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.Error as e:
+        print(f"SQL HIBA AZ ÉTEL MENTÉSEKOR: {e}")
+        st.error("Hiba történt a mentés során. Kérlek ellenőrizd a terminált.")
+        return False
 
 def delete_food(food_id):
     conn = sqlite3.connect('eatsmart.db')
@@ -84,27 +103,6 @@ def get_today_food(username):
     conn.close()
     return data
 
-# JAVÍTÁS: add_food HIBÁVAL ELLENŐRZVE
-def add_food(username, food_name, calories):
-    try:
-        conn = sqlite3.connect('eatsmart.db')
-        c = conn.cursor()
-        now_date = datetime.now().strftime("%Y-%m-%d")
-        now_time = datetime.now().strftime("%H:%M")
-        
-        # INSERT parancs
-        c.execute("INSERT INTO food_log (username, food_name, calories, date, time) VALUES (?,?,?,?,?)", 
-                  (username, food_name, int(calories), now_date, now_time))
-        conn.commit()
-        conn.close()
-        return True
-    except sqlite3.Error as e:
-        # FONTOS: KIÍRJA A PONTOS SQL HIBÁT A TERMINÁLBA (konzolra)
-        print(f"SQL HIBA AZ ÉTEL MENTÉSEKOR: {e}")
-        st.error(f"Sajnálom, hiba történt a mentés során. Részletek a terminálban.")
-        return False
-
-
 # --- 4. SZÁMÍTÁSI LOGIKA ---
 def calculate_calories(weight, height, age, gender, goal):
     if gender == "Férfi":
@@ -121,195 +119,128 @@ def determine_goal(current, target):
     elif target > current: return "Hízás"
     else: return "Súlytartás"
 
-# --- 5. FŐPROGRAM ---
+# --- 5. FŐPROGRAM INDÍTÁSA ---
 init_db()
 
-if 'current_user' not in st.session_state:
-    st.session_state['current_user'] = None
-if 'page_state' not in st.session_state:
-    st.session_state['page_state'] = 'login' 
+# Ellenőrzés, hogy létezik-e a FIX "Vendég" profil (SINGLE-USER MODE)
+user_data = get_user_data(FIXED_USER_ID)
 
-# --- A) BELÉPÉS / REGISZTRÁCIÓ FLOW ---
-if st.session_state['current_user'] is None:
-    st.title("🍏 EatSmart - Üdvözlünk!")
+if user_data is None:
+    # Ha nincs, létrehozunk egy alapértelmezett profilt
+    default_target = calculate_calories(80.0, 175, 30, "Férfi", "Fogyás")
+    # JAVÍTVA: display_name-t is létrehozzuk
+    create_guest_user(FIXED_USER_ID, DEFAULT_DISPLAY_NAME, 80.0, 175, 30, "Férfi", "Fogyás", 75.0, default_target)
+    user_data = get_user_data(FIXED_USER_ID) # Betöltjük a friss adatot
+
+st.session_state['current_user'] = user_data
+
+# --- B) ALKALMAZÁS ELINDÍTÁSA ---
+
+# Adatok kicsomagolása (Figyelem: az indexek ELCSÚSZTAK 1-gyel a display_name miatt!)
+# 0:username(ID), 1:display_name, 2:weight, 3:height, 4:age, 5:gender, 6:goal, 7:target_w, 8:target_cal
+u_id, u_name, u_weight, u_height, u_age, u_gender, u_goal, u_target_weight, u_target = st.session_state['current_user']
+
+# OLDALSÁV (MENÜ)
+with st.sidebar:
+    st.title(f"👋 {u_name}") # A szerkeszthető nevet mutatjuk
+    page = st.radio("Menü", ["Főoldal", "Étel Hozzáadása", "Profil"])
     
-    col_login, col_reg = st.columns(2)
-    
-    if col_reg.button("➕ Új fiók regisztrálása"):
-        st.session_state['page_state'] = 'register'
+    st.write("---")
+    if st.button("🔄 Adatok Frissítése"):
+        st.session_state['current_user'] = get_user_data(u_id)
         st.rerun()
-
-    # ÁLLAPOT 1: BELÉPÉS
-    if st.session_state['page_state'] == 'login':
-        st.subheader("Belépés")
-        with st.form("login_form"):
-            username_input = st.text_input("Felhasználónév").strip()
-            password_input = st.text_input("Jelszó", type="password")
-            
-            if st.form_submit_button("Belépés"):
-                user_data = get_user_by_name(username_input)
-                
-                if user_data:
-                    if verify_password(password_input, user_data[1]):
-                        st.session_state['current_user'] = user_data
-                        st.success(f"Szia, {user_data[0]}!")
-                        st.rerun()
-                    else:
-                        st.error("Hibás jelszó.")
-                else:
-                    st.error("Nincs ilyen felhasználó. Kérlek regisztrálj!")
+    st.write("---")
     
-    # ÁLLAPOT 2 & 3: REGISZTRÁCIÓ (Egyetlen hosszú űrlap)
-    elif st.session_state['page_state'] == 'register':
-        st.subheader("Új fiók létrehozása")
-        st.info("Kérlek add meg a bejelentkezéshez és a kalóriaszámításhoz szükséges adatokat.")
-        
-        with st.form("reg_form_full"):
-            new_username = st.text_input("Választott felhasználónév").strip()
-            new_password = st.text_input("Jelszó", type="password")
-            
-            st.markdown("---")
-            st.subheader("Személyes adatok és célok")
-            
-            nem = st.radio("Nemed", ["Férfi", "Nő"])
-            c1, c2 = st.columns(2)
-            suly = c1.number_input("Jelenlegi súly (kg)", 30.0, 200.0, 70.0)
-            magassag = c2.number_input("Magasság (cm)", 100, 250, 170)
-            kor = st.number_input("Kor", 10, 100, 30)
-            
-            st.markdown("### 🎯 Mi a célod?")
-            celsuly = st.number_input("Hány kiló szeretnél lenni?", 30.0, 200.0, 70.0)
+# 1. OLDAL: FŐOLDAL (Dashboard)
+if page == "Főoldal":
+    mai_etelek = get_today_food(u_id) # Az ID-t használjuk a lekérdezéshez
+    mai_kaloria = sum(t[2] for t in mai_etelek)
+    maradek = u_target - mai_kaloria
+    szazalek = min(mai_kaloria / u_target, 1.0) * 100
 
-            if st.form_submit_button("Regisztráció véglegesítése"):
-                if not new_username or not new_password:
-                    st.error("A felhasználónév és a jelszó kötelező.")
-                elif get_user_by_name(new_username):
-                    st.error(f"A(z) '{new_username}' felhasználónév már foglalt.")
-                else:
-                    cel_tipus = determine_goal(suly, celsuly)
-                    napi_cel = calculate_calories(suly, magassag, kor, nem, cel_tipus)
-                    
-                    create_user(
-                        new_username, new_password, 
-                        suly, magassag, kor, nem, cel_tipus, celsuly, napi_cel
-                    )
-                    
-                    st.success("Sikeres regisztráció! Most beléptetünk.")
-                    st.session_state['current_user'] = get_user_by_name(new_username)
-                    st.session_state['page_state'] = 'login'
-                    st.rerun()
-        
-        if st.button("Mégsem"):
-            st.session_state['page_state'] = 'login'
-            st.rerun()
-
-# --- B) BELÉPETT FELÜLET ---
-else:
-    # Adatok indexelése: 0:user, 1:hash, 2:weight, 3:height, 4:age, 5:gender, 6:goal, 7:target_w, 8:target_cal
-    u_name, u_hash, u_weight, u_height, u_age, u_gender, u_goal, u_target_weight, u_target = st.session_state['current_user']
-
-    # OLDALSÁV (MENÜ)
-    with st.sidebar:
-        st.title(f"👤 {u_name}")
-        page = st.radio("Menü", ["Főoldal", "Étel Hozzáadása", "Profil"])
-        
-        st.write("---")
-        if st.button("🔄 Adatok Frissítése"):
-            st.session_state['current_user'] = get_user_by_name(u_name)
-            st.rerun()
-            
-        st.write("---")
-        if st.button("Kijelentkezés"):
-            st.session_state['current_user'] = None
-            st.session_state['page_state'] = 'login'
-            st.rerun()
-
-    # 1. OLDAL: FŐOLDAL (Dashboard)
-    if page == "Főoldal":
-        mai_etelek = get_today_food(u_name)
-        mai_kaloria = sum(t[2] for t in mai_etelek)
-        maradek = u_target - mai_kaloria
-        szazalek = min(mai_kaloria / u_target, 1.0) * 100
-
-        # Nagy kártya
-        st.markdown(f"""
-            <div class="main-card">
-                <h3 style="margin:0;">Napi Cél: {u_target} kcal</h3>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
-                    <div><p style="margin:0; opacity:0.8;">Hátralévő</p><h1 style="margin:0; font-size:3em;">{maradek}</h1></div>
-                    <div style="text-align:right;"><p style="margin:0; opacity:0.8;">Bevitt</p><h2 style="margin:0;">{mai_kaloria}</h2></div>
-                </div>
-                <div style="background:rgba(255,255,255,0.3); height:10px; border-radius:5px; margin-top:15px;">
-                    <div style="background:white; width:{szazalek}%; height:100%; border-radius:5px;"></div>
-                </div>
+    # Nagy kártya
+    st.markdown(f"""
+        <div class="main-card">
+            <h3 style="margin:0;">Napi Cél: {u_target} kcal</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
+                <div><p style="margin:0; opacity:0.8;">Hátralévő</p><h1 style="margin:0; font-size:3em;">{maradek}</h1></div>
+                <div style="text-align:right;"><p style="margin:0; opacity:0.8;">Bevitt</p><h2 style="margin:0;">{mai_kaloria}</h2></div>
             </div>
-        """, unsafe_allow_html=True)
+            <div style="background:rgba(255,255,255,0.3); height:10px; border-radius:5px; margin-top:15px;">
+                <div style="background:white; width:{szazalek}%; height:100%; border-radius:5px;"></div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
-        # Napló lista
-        st.subheader("Mai étkezések")
-        if not mai_etelek:
-            st.info("Még üres a mai naplód.")
-        else:
-            for eid, nev, kal in mai_etelek:
-                c1, c2, c3 = st.columns([3, 1, 1])
-                c1.write(f"🍽 **{nev}**")
-                c2.write(f"**{kal}** kcal")
-                if c3.button("🗑️", key=f"del_{eid}", type="secondary"):
-                    delete_food(eid)
-                    st.rerun()
-                st.markdown("---")
+    # Napló lista
+    st.subheader(f"{u_name} mai étkezései")
+    if not mai_etelek:
+        st.info("Még üres a mai naplód.")
+    else:
+        for eid, nev, kal in mai_etelek:
+            c1, c2, c3 = st.columns([3, 1, 1])
+            c1.write(f"🍽 **{nev}**")
+            c2.write(f"**{kal}** kcal")
+            if c3.button("🗑️", key=f"del_{eid}", type="secondary"):
+                delete_food(eid)
+                st.rerun()
+            st.markdown("---")
 
 
-    # 2. OLDAL: ÉTEL HOZZÁADÁSA
-    elif page == "Étel Hozzáadása":
-        st.title("Mit ettél? 🥗")
-        with st.form("add_food"):
-            nev = st.text_input("Étel neve (pl. Alma, Szendvics)")
-            kal = st.number_input("Kalória (kcal)", min_value=1, step=10)
-            if st.form_submit_button("Hozzáadás"):
-                if nev and kal > 0:
-                    if add_food(u_name, nev, int(kal)):
-                        st.success(f"Hozzáadva: {nev}")
-                        # FONTOS: Frissítjük a Dashboardot a hozzáadás után
-                        st.rerun() 
-                else:
-                    st.error("Adj meg nevet és pozitív kalória értéket!")
+# 2. OLDAL: ÉTEL HOZZÁADÁSA
+elif page == "Étel Hozzáadása":
+    st.title("Mit ettél? 🥗")
+    with st.form("add_food"):
+        nev = st.text_input("Étel neve (pl. Alma, Szendvics)")
+        kal = st.number_input("Kalória (kcal)", min_value=1, step=10)
+        if st.form_submit_button("Hozzáadás"):
+            if nev and kal > 0:
+                if add_food(u_id, nev, int(kal)):
+                    st.success(f"Hozzáadva: {nev}")
+                    st.rerun() 
+            else:
+                st.error("Adj meg nevet és pozitív kalória értéket!")
 
-    # 3. OLDAL: PROFIL ÉS SZERKESZTÉS
-    elif page == "Profil":
-        st.title("Profilod")
-        
-        # Cél kijelzése
-        delta = u_target_weight - u_weight
-        uzenet = "Tartod a súlyod."
-        if delta < 0: uzenet = f"Még {abs(delta):.1f} kg fogyás a célig."
-        elif delta > 0: uzenet = f"Még {delta:.1f} kg hízás a célig."
-        
-        st.success(f"🎯 **Célsúlyod: {u_target_weight} kg** ({uzenet})")
+# 3. OLDAL: PROFIL ÉS SZERKESZTÉS
+elif page == "Profil":
+    st.title(f"{u_name} profilja")
+    
+    # Cél kijelzése
+    delta = u_target_weight - u_weight
+    uzenet = "Tartod a súlyod."
+    if delta < 0: uzenet = f"Még {abs(delta):.1f} kg fogyás a célig."
+    elif delta > 0: uzenet = f"Még {delta:.1f} kg hízás a célig."
+    
+    st.success(f"🎯 **Célsúlyod: {u_target_weight} kg** ({uzenet})")
 
-        # Statisztikák
-        c1, c2, c3 = st.columns(3)
-        with c1: st.markdown(f'<div class="stat-card"><p class="stat-value">{u_weight}</p><p class="stat-label">Jelenlegi kg</p></div>', unsafe_allow_html=True)
-        with c2: st.markdown(f'<div class="stat-card"><p class="stat-value">{u_target_weight}</p><p class="stat-label">Célsúly</p></div>', unsafe_allow_html=True)
-        with c3: st.markdown(f'<div class="stat-card"><p class="stat-value">{u_age}</p><p class="stat-label">év</p></div>', unsafe_allow_html=True)
-        
-        st.write("---")
+    # Statisztikák
+    c1, c2, c3 = st.columns(3)
+    with c1: st.markdown(f'<div class="stat-card"><p class="stat-value">{u_weight}</p><p class="stat-label">Jelenlegi kg</p></div>', unsafe_allow_html=True)
+    with c2: st.markdown(f'<div class="stat-card"><p class="stat-value">{u_target_weight}</p><p class="stat-label">Célsúly</p></div>', unsafe_allow_html=True)
+    with c3: st.markdown(f'<div class="stat-card"><p class="stat-value">{u_age}</p><p class="stat-label">év</p></div>', unsafe_allow_html=True)
+    
+    st.write("---")
 
-        # SZERKESZTÉS LEHETŐSÉG
-        with st.expander("✏️ Súly/Cél módosítása"):
-            with st.form("edit_profile"):
-                st.write("Változtak az adataid? Írd át itt:")
-                uj_suly = st.number_input("Jelenlegi súly", value=float(u_weight))
-                uj_celsuly = st.number_input("Célsúly", value=float(u_target_weight))
-                uj_kor = st.number_input("Kor", value=int(u_age))
-                uj_magassag = st.number_input("Magasság", value=int(u_height))
+    # SZERKESZTÉS LEHETŐSÉG
+    with st.expander("✏️ Adatok módosítása"):
+        with st.form("edit_profile"):
+            # JAVÍTVA: A név is szerkeszthető
+            uj_nev = st.text_input("Megjelenített név", value=u_name)
+            
+            uj_suly = st.number_input("Jelenlegi súly", value=float(u_weight))
+            uj_celsuly = st.number_input("Célsúly", value=float(u_target_weight))
+            uj_kor = st.number_input("Kor", value=int(u_age))
+            uj_magassag = st.number_input("Magasság", value=int(u_height))
+            
+            if st.form_submit_button("Mentés"):
+                # Új cél és kalória számítása
+                uj_cel = determine_goal(uj_suly, uj_celsuly)
+                uj_napi_kaloria = calculate_calories(uj_suly, uj_magassag, uj_kor, u_gender, uj_cel)
                 
-                if st.form_submit_button("Mentés"):
-                    uj_cel = determine_goal(uj_suly, uj_celsuly)
-                    uj_napi_kaloria = calculate_calories(uj_suly, uj_magassag, uj_kor, u_gender, uj_cel)
-                    
-                    update_user_data(u_name, uj_suly, uj_magassag, uj_kor, u_gender, uj_cel, uj_celsuly, uj_napi_kaloria)
-                    
-                    st.session_state['current_user'] = get_user_by_name(u_name)
-                    st.success("Sikeres mentés!")
-                    st.rerun()
+                # Adatbázis frissítése a Vendég profilon
+                update_user_data(u_id, uj_nev, uj_suly, uj_magassag, uj_kor, u_gender, uj_cel, uj_celsuly, uj_napi_kaloria)
+                
+                # Session frissítése és újratöltés
+                st.session_state['current_user'] = get_user_data(u_id)
+                st.success("Sikeres mentés!")
+                st.rerun()

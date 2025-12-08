@@ -1,0 +1,75 @@
+package com.eatsmart.model;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Egységteszt a FoodEntry modell osztályhoz.
+ * Ellenőrzi a konstruktor működését és a getter/setter metódusok helyességét.
+ */
+class FoodEntryTest {
+
+    // Teszt adatok
+    private static final int ID = 101;
+    private static final String NAME = "Grillezett csirke";
+    private static final int CALORIES = 350;
+    private static final String DATE = "2025. 12. 08.";
+
+    /**
+     * Happy Path: Ellenőrzi, hogy a konstruktor helyesen inicializálja az objektumot.
+     * Ez a teszt lefedi az ID, név, kalória és dátum inicializálását.
+     */
+    @Test
+    @DisplayName("A konstruktor helyesen inicializálja a FoodEntry objektumot")
+    void testConstructorAndGetters() {
+        FoodEntry entry = new FoodEntry(ID, NAME, CALORIES, DATE);
+
+        // Ellenőrzés: A getter metódusok a helyes értéket adják-e vissza
+        assertEquals(ID, entry.getId(), "Az ID nem egyezik a várt értékkel.");
+        assertEquals(NAME, entry.getFoodName(), "Az étel neve nem egyezik a várt értékkel.");
+        assertEquals(CALORIES, entry.getCalories(), "A kalória érték nem egyezik a várt értékkel.");
+        assertEquals(DATE, entry.getDate(), "A dátum nem egyezik a várt értékkel.");
+    }
+
+    /**
+     * Ellenőrzi, hogy a setter metódusok megfelelően módosítják-e az adatokat.
+     */
+    @Test
+    @DisplayName("A setter metódusok sikeresen módosítják az adatokat")
+    void testSetters() {
+        FoodEntry entry = new FoodEntry(1, "Régi név", 100, "2025. 01. 01.");
+
+        int newId = 2;
+        String newName = "Spenót";
+        int newCalories = 20;
+        String newDate = "2025. 12. 09.";
+
+        // Cselekvés (Setters hívása)
+        entry.setId(newId);
+        entry.setFoodName(newName);
+        entry.setCalories(newCalories);
+        entry.setDate(newDate);
+
+        // Ellenőrzés: Az új értékek egyeznek-e
+        assertEquals(newId, entry.getId(), "Az ID beállítás sikertelen.");
+        assertEquals(newName, entry.getFoodName(), "Az étel neve beállítás sikertelen.");
+        assertEquals(newCalories, entry.getCalories(), "A kalória beállítás sikertelen.");
+        assertEquals(newDate, entry.getDate(), "A dátum beállítás sikertelen.");
+    }
+
+    /**
+     * Kivételes eset: Ellenőrzi a nulla (0) vagy negatív kalóriaértékeket.
+     * Bár a beviteli validáció a UI-ban vagy a Service rétegben történik,
+     * a modellnek képesnek kell lennie tárolni ezeket az értékeket.
+     */
+    @Test
+    @DisplayName("A negatív vagy nulla kalória értékek tárolása engedélyezett a modellben (Edge Case)")
+    void testNegativeOrZeroCalories() {
+        FoodEntry entryNegative = new FoodEntry(200, "Víz (Negatív)", -1, DATE);
+        FoodEntry entryZero = new FoodEntry(201, "Víz (Nulla)", 0, DATE);
+
+        assertEquals(-1, entryNegative.getCalories(), "Negatív kalória tárolása nem sikerült.");
+        assertEquals(0, entryZero.getCalories(), "Nulla kalória tárolása nem sikerült.");
+    }
+}

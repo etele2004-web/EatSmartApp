@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/EatSmart/EatSmart.iml" filepath="$PROJECT_DIR$/EatSmart/EatSmart.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/EatSmartApp.iml" filepath="$PROJECT_DIR$/.idea/EatSmartApp.iml" />
     </modules>
   </component>

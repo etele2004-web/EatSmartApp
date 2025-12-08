@@ -1,0 +1,6 @@
+--- TELJESÍTMÉNY TESZT INDÍTÁSA ---
+Felhasználók száma: 1000
+--- EREDMÉNYEK ---
+Összes idő: 337 ms
+Átlagos válaszidő: 0.337 ms/kérés
+EREDMÉNY: SIKER (A válaszidő 2 mp alatt van)

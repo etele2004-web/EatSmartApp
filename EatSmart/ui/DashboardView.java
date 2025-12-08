@@ -47,7 +47,9 @@ public class DashboardView {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         StackPane profileIcon = new StackPane();
-        Circle profileBg = new Circle(20, Color.web("#d1fae5"));
+        Circle profileBg = new Circle(20, Color.web(theme.accentColor)); // Accent színt használunk, kicsit átlátszóbban kéne de így is jó
+        profileBg.setOpacity(0.2);
+        
         String initial = app.getCurrentUser().getDisplayName().substring(0, 1).toUpperCase();
         Label profileInitial = new Label(initial);
         profileInitial.setStyle("-fx-text-fill: " + theme.accentColor + "; -fx-font-weight: bold;");
@@ -73,7 +75,7 @@ public class DashboardView {
 
         VBox mainCard = new VBox(10);
         mainCard.setPadding(new Insets(25));
-        mainCard.setStyle("-fx-background-color: " + theme.mainCardGradient + "; -fx-background-radius: 25; -fx-effect: dropshadow(three-pass-box, rgba(13,148,136,0.3), 15, 0, 0, 8);");
+        mainCard.setStyle("-fx-background-color: " + theme.mainCardGradient + "; -fx-background-radius: 25; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 15, 0, 0, 8);");
 
         HBox cardTop = new HBox();
         cardTop.setAlignment(Pos.CENTER_LEFT);
@@ -106,7 +108,7 @@ public class DashboardView {
     private Label createListHeader() {
         Label listHeader = new Label("Mai étkezések");
         listHeader.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
-        listHeader.setStyle("-fx-text-fill: #022c22;"); // Fix sötét szín
+        listHeader.setStyle("-fx-text-fill: " + theme.textColor + ";"); // Téma színét használja!
         return listHeader;
     }
 
@@ -122,7 +124,8 @@ public class DashboardView {
         List<FoodEntry> todayFood = DatabaseManager.getTodayFood(app.getCurrentUser().getUsername());
         if (todayFood.isEmpty()) {
             Label empty = new Label("Még nem ettél ma semmit.");
-            empty.setStyle("-fx-text-fill: #94a3b8;");
+            // Sötét módban a szürke is legyen olvasható
+            empty.setStyle("-fx-text-fill: #94a3b8;"); 
             foodList.getChildren().add(empty);
         } else {
             for (FoodEntry f : todayFood) {
@@ -133,7 +136,8 @@ public class DashboardView {
         Button addBtn = new Button("+ Új étel rögzítése");
         addBtn.setMaxWidth(Double.MAX_VALUE);
         addBtn.setPrefHeight(45);
-        addBtn.setStyle("-fx-background-color: white; -fx-text-fill: " + theme.accentColor + "; -fx-font-weight: bold; -fx-background-radius: 15; -fx-border-color: " + theme.accentColor + "; -fx-border-radius: 15; -fx-border-style: dashed; -fx-cursor: hand;");
+        // A gomb is a témához igazodik
+        addBtn.setStyle("-fx-background-color: " + theme.cardBg + "; -fx-text-fill: " + theme.accentColor + "; -fx-font-weight: bold; -fx-background-radius: 15; -fx-border-color: " + theme.accentColor + "; -fx-border-radius: 15; -fx-border-style: dashed; -fx-cursor: hand;");
         addBtn.setOnAction(e -> app.showAddFood());
         foodList.getChildren().add(addBtn);
 
@@ -145,32 +149,32 @@ public class DashboardView {
         HBox row = new HBox(15);
         row.setAlignment(Pos.CENTER_LEFT);
         row.setPadding(new Insets(15));
-        row.setStyle("-fx-background-color: white; -fx-background-radius: 18; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 10, 0, 0, 4);");
+        // A kártya háttere a témából jön (Sötét módban sötétszürke, Világosban fehér)
+        row.setStyle("-fx-background-color: " + theme.cardBg + "; -fx-background-radius: 18; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 4);");
 
-        // Ikon
         StackPane iconPane = new StackPane();
         Rectangle bg = new Rectangle(45, 45, Color.web(theme.iconBg));
         bg.setArcWidth(15); bg.setArcHeight(15);
-        Label icon = new Label("🍎");
+        
+        Label icon = new Label(getIconForFood(f.getFoodName()));
         icon.setStyle("-fx-font-size: 20px;");
         iconPane.getChildren().addAll(bg, icon);
 
-        // Szövegek
         VBox texts = new VBox(2);
-
-        // Név - KÖZVETLEN STÍLUSSAL (Biztosan sötét legyen)
+        
+        // --- SZÍN JAVÍTÁS ---
         Label name = new Label(f.getFoodName());
-        name.setStyle("-fx-text-fill: #1e293b; -fx-font-weight: bold; -fx-font-size: 15px;");
-
-        // Kalória - KÖZVETLEN STÍLUSSAL (Biztosan zöld legyen)
+        // Itt most a theme.textColor-t használjuk!
+        name.setStyle("-fx-text-fill: " + theme.textColor + "; -fx-font-weight: bold; -fx-font-size: 15px;"); 
+        
         Label cals = new Label(f.getCalories() + " kcal");
-        cals.setStyle("-fx-text-fill: #10b981; -fx-font-weight: bold; -fx-font-size: 12px;");
-
+        cals.setStyle("-fx-text-fill: " + theme.accentColor + "; -fx-font-weight: bold; -fx-font-size: 12px;");
+        // --------------------
+        
         texts.getChildren().addAll(name, cals);
 
         Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // Törlés gomb
         Button delBtn = new Button("🗑");
         delBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #ef4444; -fx-font-size: 14px; -fx-cursor: hand;");
         delBtn.setOnAction(e -> {
@@ -188,5 +192,31 @@ public class DashboardView {
         l.setPadding(new Insets(5, 12, 5, 12));
         l.setStyle("-fx-background-color: rgba(255,255,255,0.2); -fx-background-radius: 8; -fx-font-size: 11px;");
         return l;
+    }
+
+    private String getIconForFood(String name) {
+        if (name == null) return "🍽️";
+        String lower = name.toLowerCase();
+        if (containsAny(lower, "kenyér", "kenyer", "kifli", "zsemle", "szendvics", "péksüti", "kalács")) return "🍞";
+        if (containsAny(lower, "csirke", "hús", "hus", "sonka", "kolbász", "kolbasz", "pörkölt", "porkolt", "marha", "sertés", "sertes", "hal", "tonhal")) return "🍗";
+        if (containsAny(lower, "tojás", "tojas", "rántotta", "rantotta", "omlett")) return "🍳";
+        if (containsAny(lower, "rizs", "krumpli", "burgonya", "tészta", "teszta")) return "🍚";
+        if (containsAny(lower, "saláta", "salata", "zöldség", "zoldseg", "uborka", "paradicsom", "paprika", "répa", "repa")) return "🥗";
+        if (containsAny(lower, "alma", "banán", "banan", "gyümölcs", "gyumolcs", "narancs", "barack", "szőlő", "szolo")) return "🍎";
+        if (containsAny(lower, "tej", "joghurt", "sajt", "túró", "turo", "kefir")) return "🥛";
+        if (containsAny(lower, "kávé", "kave", "tea", "latte", "cappuccino")) return "☕";
+        if (containsAny(lower, "víz", "viz", "cola", "kóla", "üdítő", "udito", "szörp", "szorp")) return "🥤";
+        if (containsAny(lower, "csoki", "süti", "suti", "torta", "fánk", "fank", "keksz", "chips")) return "🍫";
+        if (containsAny(lower, "pizza", "lángos", "langos")) return "🍕";
+        if (containsAny(lower, "hamburger", "burger", "gyros")) return "🍔";
+        if (containsAny(lower, "leves")) return "🍲";
+        return "🍽️";
+    }
+
+    private boolean containsAny(String text, String... keywords) {
+        for (String keyword : keywords) {
+            if (text.contains(keyword)) return true;
+        }
+        return false;
     }
 }

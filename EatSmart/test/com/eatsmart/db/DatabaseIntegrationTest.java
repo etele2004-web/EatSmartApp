@@ -9,14 +9,13 @@ public class DatabaseIntegrationTest {
 
     @BeforeAll
     public static void setup() {
-        // Inicializáljuk az adatbázist a teszt előtt
+        
         DatabaseManager.initDb();
     }
 
     @Test
     public void testUserSaveAndRetrieve() {
-        // 1. LÉPÉS: Létrehozunk egy teszt felhasználót
-        // Egyedi nevet generálunk az időbélyeggel, hogy ne ütközzön régiekkel
+       
         String uniqueName = "TesztUser_" + System.currentTimeMillis();
 
         User newUser = new User(
@@ -31,16 +30,16 @@ public class DatabaseIntegrationTest {
                 2500   // napi kalória
         );
 
-        // 2. LÉPÉS: Elmentjük az adatbázisba
+    
         DatabaseManager.saveUser(newUser);
 
-        // 3. LÉPÉS: Visszakérjük az adatbázisból
+       
         User retrievedUser = DatabaseManager.getUser(uniqueName);
 
-        // 4. LÉPÉS: Ellenőrizzük, hogy sikerült-e (Assert)
+        
         assertNotNull(retrievedUser, "A visszakapott felhasználó nem lehet null (nem találtuk az adatbázisban)!");
 
-        // Összehasonlítjuk az eredeti és a visszakapott adatokat
+        
         assertEquals(newUser.getUsername(), retrievedUser.getUsername(), "A felhasználónév nem egyezik!");
         assertEquals(newUser.getDisplayName(), retrievedUser.getDisplayName(), "A megjelenített név nem egyezik!");
         assertEquals(newUser.getWeight(), retrievedUser.getWeight(), 0.01, "A súly nem egyezik!");

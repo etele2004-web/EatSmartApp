@@ -22,21 +22,34 @@ public class EatSmartApp extends Application {
 
     private Stage primaryStage;
     private User currentUser;
-    private final AppTheme theme = AppTheme.MODERN_GREEN;
+    
+    // Alapértelmezett téma
+    private AppTheme currentTheme = AppTheme.MODERN_GREEN;
 
     @Override
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
         DatabaseManager.initDb();
-        primaryStage.getIcons().add(generateAppIcon());
-
-        // Elsőnek a login képernyőt töltjük be
+        updateAppIcon(); // Ikon frissítése induláskor
+        
         showLoginScreen();
         primaryStage.setTitle("EatSmart");
         primaryStage.show();
     }
 
-    // --- NAVIGÁCIÓS METÓDUSOK (Ezeket hívják a többi fájlból) ---
+    // --- TÉMAVÁLTÓ METÓDUS ---
+    public void setTheme(AppTheme newTheme) {
+        this.currentTheme = newTheme;
+        updateAppIcon(); // Ikon színének frissítése
+        // Újrarajzoljuk az aktuális képernyőt (pl. Profilt), hogy látszódjon a változás
+        showProfile(); 
+    }
+
+    public AppTheme getTheme() {
+        return currentTheme;
+    }
+
+    // --- NAVIGÁCIÓ ---
 
     public void showLoginScreen() {
         LoginView view = new LoginView(this);
@@ -64,8 +77,6 @@ public class EatSmartApp extends Application {
         setScene(view.getView());
     }
 
-    // --- SEGÉD METÓDUSOK ---
-
     private void setScene(Pane root) {
         Scene scene = new Scene(root, 400, 750);
         primaryStage.setScene(scene);
@@ -75,6 +86,7 @@ public class EatSmartApp extends Application {
     public void showToast(String message) {
         Popup popup = new Popup();
         Label toast = new Label(message);
+        // Toast stílus (ez mindig sötét marad, hogy jól olvasható legyen)
         toast.setStyle("-fx-background-color: #333; -fx-text-fill: white; -fx-padding: 15; -fx-background-radius: 10; -fx-font-size: 14px;");
         popup.getContent().add(toast);
 
@@ -95,11 +107,16 @@ public class EatSmartApp extends Application {
         }
     }
 
+    private void updateAppIcon() {
+        primaryStage.getIcons().clear();
+        primaryStage.getIcons().add(generateAppIcon());
+    }
+
     private WritableImage generateAppIcon() {
         int size = 64;
         Canvas canvas = new Canvas(size, size);
         GraphicsContext gc = canvas.getGraphicsContext2D();
-        gc.setFill(Color.web(theme.accentColor));
+        gc.setFill(Color.web(currentTheme.accentColor)); // A téma színét használja!
         gc.fillRoundRect(0, 0, size, size, 20, 20);
         gc.setFill(Color.WHITE);
         gc.setFont(Font.font("Segoe UI", FontWeight.BOLD, 28));
@@ -111,10 +128,8 @@ public class EatSmartApp extends Application {
         return image;
     }
 
-    // --- GETTEREK / SETTEREK ---
     public User getCurrentUser() { return currentUser; }
     public void setCurrentUser(User user) { this.currentUser = user; }
-    public AppTheme getTheme() { return theme; }
 
     public static void main(String[] args) { launch(args); }
 }

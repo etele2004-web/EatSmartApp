@@ -1,0 +1,38 @@
+Bevezetés
+Az EatSmartApp egy felhasználóbarát alkalmazás, melynek célja a napi kalória- és makronutriens-bevitel nyomon követése, segítve ezzel a felhasználót a személyes fitneszcéljai (súlytartás, fogyás, izomtömeg növelés) elérésében.
+
+2. Főoldal (Dashboard)
+Ez a képernyő azonnali áttekintést nyújt az aktuális nap statisztikáiról:
+
+Személyes Cél: A kiszámított napi kalóriakeret.
+
+Hátralévő kalória (kcal): A keretből még felhasználható mennyiség.
+
+Makrók: A kördiagram és a szöveges adatok mutatják a bevitt fehérje, szénhidrát és zsír mennyiségét.
+
+Vízfogyasztás: Lehetőség a napi folyadékbevitel rögzítésére.
+
+Étel Hozzáadása: Az "+ Új étel rögzítése" gombbal navigálhatsz a bevitel képernyőre.
+
+3. Étel Hozzáadása ("Mit ettél?")
+Ezen a képernyőn tudod bevinni az ételeket a naplódba.
+
+Étkezés Típusa: Válaszd ki az étkezés típusát (Reggeli, Ebéd, stb.).
+
+Adatok Kitöltése: Add meg az étel nevét, kalóriáját.
+
+Mentés: A Hozzáadás gombbal rögzítheted a naplóba.
+
+4. Naptár
+A naptár ikonra kattintva vagy a Vissza (←) gombbal éred el a Naptár nézetet.
+
+Dátumválasztó: Kiválaszthatod a dátumot, melynek adatait látni szeretnéd.
+
+Összesítés: Megmutatja az adott napra vonatkozó teljes kalóriabevitelt.
+
+Részletes lista: Megtekintheted a bejegyzéseket (étel neve, kalória, makrók).
+
+Törlés: A lista bejegyzései mellett lévő piros 'X' ikonnal törölheted az adott ételbejegyzést.
+
+5. Beállítások és Téma
+A Profil nézetben (amely a Dashboardról érhető el) tudod szerkeszteni a súly, magasság, kor adataidat, a céljaidat, valamint lehetőséged van a szín téma (dark mode, light mode, stb.) megváltoztatására.

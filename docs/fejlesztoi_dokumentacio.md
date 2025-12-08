@@ -1,112 +1,89 @@
-Eatsmart Alkalmazás - Fejlesztői Dokumentáció
-
-Áttekintés
-
-Ez a dokumentum az Eatsmart alkalmazás Python alapú háttérrendszerének (backend) osztályait és metódusait írja le. A rendszer célja a napi kalóriabevitel és makrotápanyagok nyomon követése.
-
-Osztályok
-
-1. Food osztály
-
-Ez az osztály reprezentál egy konkrét élelmiszert vagy ételt az alkalmazásban. Tárolja a tápanyagértékeket.
-
-Konstruktor: __init__
-
-def __init__(self, name: str, calories: int, protein: float, carbs: float, fat: float)
+EatSmart Calorie Tracker DokumentációA projekt egy egyszerű, helyi adatbázison alapuló kalóriaszámláló webalkalmazás, amely a felhasználói beavatkozás nélkül azonnal elindul, és egyetlen fix profilt (Vendég) kezel.
 
 
-Létrehoz egy új étel objektumot.
-
-Paraméterek:
-
-name (str): Az étel megnevezése (pl. "Alma").
-
-calories (int): Kalóriatartalom (kcal).
-
-protein (float): Fehérjetartalom grammban.
-
-carbs (float): Szénhidráttartalom grammban.
-
-fat (float): Zsírtartalom grammban.
-
-Metódusok:
-
-__str__(self) -> str
-
-Visszaadja az étel szöveges reprezentációját, beleértve a nevét és a makrókat.
-
-2. User osztály
-
-A felhasználói profil adatait és céljait kezelő osztály.
-
-Konstruktor: __init__
-
-def __init__(self, user_id: int, username: str, current_weight: float)
+I. Projekt áttekintése
+Paraméter,                  Érték,                                Leírás
+Keretrendszer,              Streamlit,                            A felhasználói felületért felelős.
+Backend Logika,             Python,                               Minden számításért és adatkezelésért felel.
+Adatbázis,                  SQLite (eatsmart.db),                 Helyi fájl alapú adatbázis az adatok tartós tárolásáért.
+Működési Mód,               Egyfelhasználós (Vendég),             "A belépési rendszert kihagyja, a fix GUEST_ID alatt tárolja az adatokat."
+Fő Funkciók,                "Kalória számítás (BMR/TDEE),         Étel naplózás, Adatok módosítása.",
 
 
-Felhasználó inicializálása alapvető adatokkal.
+1. Előkészületek és Futtatás
+Függőségek (Requirements):
 
-Paraméterek:
+Csak a Streamlit szükséges: pip install streamlit
 
-user_id (int): A felhasználó egyedi azonosítója.
+Adatbázis Tisztítás: Mivel a séma stabilizálódott (nincs email/jelszó), a sikeres induláshoz törölni kell a régi, hibásan tárolt eatsmart.db fájlt (ha létezik).
 
-username (str): A felhasználó neve.
-
-current_weight (float): Jelenlegi testsúly kg-ban.
-
-Metódusok:
-
-set_daily_calorie_goal(self, goal: int)
-
-Beállítja a felhasználó napi kalóriakeretét.
-
-Paraméterek: goal (int) - A napi cél kcal-ban.
-
-calculate_bmi(self, height_m: float = 1.70) -> float
-
-Kiszámolja a felhasználó testtömegindexét (BMI).
-
-Paraméterek: height_m (float) - Magasság méterben (alapértelmezett: 1.70).
-
-Visszatérési érték: A számított BMI (float).
-
-3. DailyLog osztály
-
-Ez az osztály felelős egy adott nap étkezéseinek rögzítéséért és a napi összegzésért.
-
-Konstruktor: __init__
-
-def __init__(self)
+Indítás: streamlit run app.py
 
 
-Létrehoz egy üres naplót a mai dátummal.
+II. Technikai Komponensek és Adatstruktúra 💾
+1. Adatbázis Séma (Táblák)
+Az alkalmazás két fő táblát használ az eatsmart.db fájlban:
 
-Metódusok:
+A) users tábla (9 oszlop)
+Ez tárolja az alkalmazás beállításait és a felhasználó fizikai adatait.
 
-add_food(self, food: Food)
 
-Hozzáad egy ételt a napi listához.
 
-Paraméterek: food (Food objektum) - A rögzítendő étel.
+Index,                  Oszlopnév,                  Típus,                    Leírás
+0,                      username,                   TEXT PRIMARY KEY,         "A belső, fix azonosító (mindig GUEST_ID)."
+1,                      display_name,               TEXT,                     "A felhasználó által megadott és szerkeszthető név (Pl. ""Anna"")."
+2,                      weight,                     REAL,                     Jelenlegi súly (kg).
+3,                      height,                     REAL,                     Magasság (cm).
+4,                      age,                        INTEGER,                  Életkor.
+5,                      gender,                     TEXT,                     "Nem (""Férfi"" / ""Nő"")."
+6,                      goal,                       TEXT,                     "Kalóriacél (""Fogyás"", ""Hízás"", ""Súlytartás"")."
+7,                      target_weight,              REAL,                     A felhasználó által megadott célsúly (kg).
+8,                      daily_target,               INTEGER,                  A napi kiszámított kalóriakeret.
 
-get_total_calories(self) -> int
 
-Összesíti a naplóban lévő ételek kalóriatartalmát.
 
-Visszatérési érték: Az összes bevitt kalória (int).
 
-print_summary(self)
 
-Kiírja a konzolra a napi étkezések listáját és az összesített kalóriát.
+B) food_log tábla
+Ez tárolja az összes felvitt étkezési adatot.
 
-Használati Példa (Main)
 
-A kód futtatásakor (if __name__ == "__main__":) a rendszer:
 
-Létrehoz egy felhasználót (Lakatos Zsolt).
+Oszlopnév,                    Típus,                      Leírás
+id,                           INTEGER PRIMARY KEY,        Egyedi ételazonosító (törléshez használva).
+username,                     TEXT,                       Azonosító a users táblához (mindig GUEST_ID).
+food_name,                    TEXT,                       Az étel neve.
+calories,                     INTEGER,                    Kalóriaérték (kcal).
 
-Létrehoz minta ételeket (Alma, Csirkemell, Rizs).
 
-Hozzáadja ezeket a napi naplóhoz.
 
-Kiszámolja a hátralévő kalóriakeretet és visszajelzést ad.
+
+
+2. Core Függvények Összefoglalása
+
+
+
+Függvény,                      Szakasz,                        Leírás
+init_db(),                     DB Kereszt,                     Létrehozza a users és food_log táblákat az induláskor (ha még nem léteznek).
+get_user_data(username),       DB Kereszt,                     Lekéri a felhasználó teljes profiladatát a táblából.
+create_guest_user(...),        DB Kereszt,                     Létrehozza az alapértelmezett GUEST_ID rekordot az első indításkor.
+update_user_data(...),         Profil,                         Frissíti a felhasználó fizikai adatait és a szerkeszthető nevét. Újraszámolja a napi kalóriacélt.
+add_food(...),                 Étel hozzáadása,                Beszúr egy új ételrekordot a food_log táblába.
+delete_food(food_id),          Dashboard,                      Törli az ételrekordot az id alapján.
+calculate_calories(...),       Számítás,                       A Mifflin-St Jeor képlet alapján kiszámítja a TDEE-t és a célnak megfelelő napi kalória célt.
+
+
+
+
+
+
+
+
+III. Alkalmazás Működési Ciklusa
+Indítás (Entry Point): A program ellenőrzi, hogy létezik-e a GUEST_ID profil. Ha nem, létrehozza az alapértelmezett beállításokkal.
+
+Sidebar (Oldalsáv): Mindig a szerkeszthető nevet (display_name) mutatja, és tartalmazza a navigációt és a Frissítés gombot (ami frissíti a böngészőben lévő adatokat).
+
+Főoldal (Dashboard): Lekéri az adott napra vonatkozó összes ételt a food_log táblából, kiszámolja a maradványt, és megjeleníti a haladást a zöld kártyán.
+
+Profil: Lehetővé teszi az összes személyes adat (beleértve a Megjelenített nevet és a Célsúlyt) szerkesztését. A mentés azonnal frissíti a users táblát, újraszámolja a napi keretet, és újra betölti az alkalmazást.

@@ -11,6 +11,7 @@ public class User {
     private double targetWeight;
     private int dailyTarget;
 
+
     public User(String username, String displayName, double weight, double height, int age, String gender, String goal, double targetWeight, int dailyTarget) {
         this.username = username;
         this.displayName = displayName;

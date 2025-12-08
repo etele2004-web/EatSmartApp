@@ -24,7 +24,7 @@ public class User {
         this.dailyTarget = dailyTarget;
     }
 
-    // Getters
+    // Teszt
     public String getUsername() { return username; }
     public String getDisplayName() { return displayName; }
     public double getWeight() { return weight; }

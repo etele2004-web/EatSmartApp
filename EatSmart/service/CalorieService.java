@@ -22,6 +22,7 @@ public class CalorieService {
         }
     }
 
+
     public static String determineGoal(double currentWeight, double targetWeight) {
         if (targetWeight < currentWeight) {
             return "Fogyás";

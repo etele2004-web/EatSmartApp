@@ -58,6 +58,7 @@ public class LoginView {
             }
         });
 
+
         root.getChildren().addAll(title, subtitle, nameInput, loginBtn);
         return root;
     }
